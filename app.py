@@ -61,12 +61,9 @@ class CameraFeedWorker(QThread):
         self.ThreadActive = False
         self.quit()
 
+
 class NotificationWorker(QThread):
     AnomalyDetected = pyqtSignal()
-    
-def myfun(num):
-    print(num)
-    return num
 
 
 if __name__ == "__main__":
