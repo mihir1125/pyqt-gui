@@ -1,5 +1,8 @@
+import cv2
 import numpy as np
 import tensorflow as tf
+from official.projects.movinet.modeling import movinet
+from official.projects.movinet.modeling import movinet_model
 from tensorflow.keras.models import load_model
 
 # Load your trained model
@@ -76,6 +79,5 @@ def process(path):
     x=np.expand_dims(frames,axis=0)
     return x
 
-x=process('Shooting001_x264.mp4')
-result = model.predict(x)
-print(result)
+def processBatch(batch):
+    return model.predict(batch)
