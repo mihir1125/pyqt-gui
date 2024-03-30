@@ -2,14 +2,18 @@ import sys
 from PyQt6.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QVBoxLayout
 from PyQt6.QtGui import QImage, QPixmap
 from PyQt6.QtCore import QThread, pyqtSignal, Qt
-# from model_processing import processBatch
-import numpy as np
+from model_processing import format_frames
 from enum import Enum
+import random
 
 import cv2
 
 def processBatch(dummy):
-    return "dummy"
+    return random.choice([
+        [[-17, 0]],
+        [[-15, 0]],
+    ]
+    )
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -36,7 +40,11 @@ class MainWindow(QWidget):
         self.FeedLabel.setPixmap(QPixmap.fromImage(image))
         
     def getModelResult(self, batch):
-        result = processBatch(np.expand_dims(batch, axis=0))
+        result = processBatch(batch)
+        if result[0][0] > -16:
+            self.FeedLabel.setStyleSheet(f"border: 10px solid {Status.ANOMALY.value}")
+        else:
+            self.FeedLabel.setStyleSheet(f"border: 10px solid {Status.NORMAL.value}")
         print(result)
 
     def stopFeed(self):
@@ -49,34 +57,36 @@ class CameraFeedWorker(QThread):
     def run(self):
         self.ThreadActive = True
         # capture = cv2.VideoCapture("http://192.168.31.191:4747/video")
+        # capture = cv2.VideoCapture("http://192.168.221.80:4747/video")
         capture = cv2.VideoCapture("Robbery014_x264.mp4")
-        batch_size = 60
+        batch_size = 120
+        output_size = (224, 224)
         count = 0
         batch = []
         while self.ThreadActive and capture.isOpened():            
             ret, frame = capture.read()
-            if count < batch_size:
-                batch.append(frame)
-                count += 1
-            else:
-                print(len(batch))
-                count = 0
-                self.BatchReady.emit(batch.copy())
-                batch.clear()
-
             if ret:
                 image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                flippedImage = cv2.flip(image, 1)
                 ConvertToQtImage = QImage(
-                    flippedImage.data,
-                    flippedImage.shape[1],
-                    flippedImage.shape[0],
+                    image.data,
+                    image.shape[1],
+                    image.shape[0],
                     QImage.Format.Format_RGB888,
                 )
                 pic = ConvertToQtImage.scaled(
                     640, 480, Qt.AspectRatioMode.KeepAspectRatio
                 )
                 self.ImageUpdate.emit(pic)
+                
+                # Creating batches
+                if count < batch_size:
+                    batch.append(format_frames(frame, output_size))
+                    count += 1
+                else:
+                    count = 0
+                    self.BatchReady.emit(batch)
+                    batch = []
+                
             else:
                 print("Failed to capture frame")
                 break

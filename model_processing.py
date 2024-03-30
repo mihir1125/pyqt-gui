@@ -6,18 +6,23 @@ from official.projects.movinet.modeling import movinet_model
 from tensorflow.keras.models import load_model
 
 # Load your trained model
-model = load_model('movinet_classifier/content/movinettrained')
+# model = load_model('/mnt/c/Users/mihir/Desktop/temp/movie_net_model-20240305T054146Z-001/movie_net_model/')
+model = load_model('movie_net_model')
+
+print("Warming up model")
+model.predict(np.zeros(shape=(1, 60, 224, 224, 3)))
+print("Warmed up")
 
 def format_frames(frame, output_size):
     """
     Pad, resize, and normalize an image from a video.
 
     Args:
-      frame: Image that needs to be resized, padded, and normalized.
-      output_size: Pixel size of the output frame image.
+        frame: Image that needs to be resized, padded, and normalized.
+        output_size: Pixel size of the output frame image.
 
     Return:
-      Formatted and normalized frame with padding of specified output size.
+        Formatted and normalized frame with padding of specified output size.
     """
     # Convert the image to float32 format
     frame = tf.image.convert_image_dtype(frame, tf.float32)
@@ -35,12 +40,12 @@ def frames_from_video_file(video_path, n_frames, output_size = (224,224), frame_
     Creates frames from each video file present for each category.
 
     Args:
-      video_path: File path to the video.
-      n_frames: Number of frames to be created per video file.
-      output_size: Pixel size of the output frame image.
+        video_path: File path to the video.
+        n_frames: Number of frames to be created per video file.
+        output_size: Pixel size of the output frame image.
 
     Return:
-      An NumPy array of frames in the shape of (n_frames, height, width, channels).
+        An NumPy array of frames in the shape of (n_frames, height, width, channels).
     """
     # Read each video frame by frame
     result = []
@@ -80,4 +85,7 @@ def process(path):
     return x
 
 def processBatch(batch):
-    return model.predict(batch)
+    frame_step = 15
+    
+    processed_batch = [batch[i] for i in range(0, len(batch), frame_step)]    
+    return model.predict(np.expand_dims(processed_batch, axis=0))
